@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User, CleanupRecord, Food
 from app.schemas import CleanupRecordResponse, UserSimple
+from app.core import get_current_user
 
 router = APIRouter(prefix="/api/cleanup", tags=["清理记录"])
 

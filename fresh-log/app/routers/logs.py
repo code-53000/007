@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User, OperationLog
 from app.schemas import OperationLogResponse, UserSimple
+from app.core import get_current_user
 
 router = APIRouter(prefix="/api/logs", tags=["操作日志"])
 

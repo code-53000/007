@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+from sqlalchemy import text
 
 from app.config import settings
 from app.database import init_db
@@ -47,7 +48,7 @@ async def health_check():
     from app.database import SessionLocal
     try:
         db = SessionLocal()
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         db.close()
         return {"status": "healthy", "database": "connected"}
     except Exception as e:

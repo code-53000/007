@@ -66,7 +66,7 @@
     </div>
 
     <van-fab
-      v-model:show="true"
+      :show="true"
       type="primary"
       icon="plus"
       @click="$router.push('/food/add')"
