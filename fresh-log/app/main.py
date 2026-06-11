@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
@@ -29,6 +29,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    detail = str(exc) if str(exc) else "服务器内部错误"
+    if len(detail) > 200:
+        detail = detail[:200] + "..."
+    return JSONResponse(
+        status_code=500,
+        content={"detail": detail, "error_type": exc.__class__.__name__},
+    )
+
 
 app.include_router(api_router)
 
