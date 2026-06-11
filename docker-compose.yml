@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: fridge-postgres
+    environment:
+      POSTGRES_USER: fridge_user
+      POSTGRES_PASSWORD: fridge_pass_2024
+      POSTGRES_DB: fridge_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fridge_user -d fridge_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - fridge-net
+
+  fresh-log:
+    build:
+      context: ./fresh-log
+      dockerfile: Dockerfile
+    container_name: fresh-log-api
+    environment:
+      - DATABASE_URL=postgresql://fridge_user:fridge_pass_2024@postgres:5432/fridge_db
+      - CORS_ORIGINS=http://localhost:8080,http://localhost:5173
+      - SECRET_KEY=fridge_secret_key_change_in_production
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./fresh-log:/app
+    networks:
+      - fridge-net
+    command: >
+      sh -c "
+        echo 'Waiting for PostgreSQL to be ready...' &&
+        python -c 'import time, psycopg2; 
+          attempts = 0; 
+          while attempts < 20:
+            try:
+              psycopg2.connect(\"dbname=fridge_db user=fridge_user password=fridge_pass_2024 host=postgres port=5432\")
+              print(\"PostgreSQL is ready!\")
+              break
+            except Exception as e:
+              attempts += 1
+              print(f\"Attempt {attempts}: waiting...\")
+              time.sleep(2)
+          ' &&
+        echo 'Starting FastAPI server...' &&
+        uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+
+  fridge-room:
+    build:
+      context: ./fridge-room
+      dockerfile: Dockerfile
+    container_name: fridge-room-web
+    ports:
+      - "8080:80"
+    depends_on:
+      - fresh-log
+    networks:
+      - fridge-net
+
+volumes:
+  postgres_data:
+
+networks:
+  fridge-net:
+    driver: bridge
