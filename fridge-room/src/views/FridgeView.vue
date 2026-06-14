@@ -1,8 +1,15 @@
 <template>
   <div class="page-container">
     <div class="page-header">
-      <h1>🧊 冰箱格子</h1>
-      <div class="subtitle">{{ stats.available_boxes }} 个可用 / 共 {{ stats.total_boxes }} 个</div>
+      <div class="header-top">
+        <div class="header-title">
+          <h1>🧊 冰箱格子</h1>
+          <div class="subtitle">{{ stats.available_boxes }} 个可用 / 共 {{ stats.total_boxes }} 个</div>
+        </div>
+        <div class="user-avatar" :style="{ background: userStore.avatarColor }" @click="$router.push('/profile')">
+          {{ userStore.user?.nickname?.[0] || '?' }}
+        </div>
+      </div>
     </div>
 
     <div class="stats-card card">
@@ -80,7 +87,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { getBoxes, getBoxStats } from '@/api/boxes'
+import { useUserStore } from '@/stores/user'
 
+const userStore = useUserStore()
 const boxes = ref([])
 const stats = ref({
   total_boxes: 0,
@@ -120,6 +129,40 @@ onMounted(loadData)
 </script>
 
 <style lang="less" scoped>
+.page-header {
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .header-title {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .user-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    color: #fff;
+    font-size: 20px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    cursor: pointer;
+    transition: transform 0.2s;
+
+    &:active {
+      transform: scale(0.92);
+    }
+  }
+}
+
 .stats-card {
   display: flex;
   justify-content: space-around;

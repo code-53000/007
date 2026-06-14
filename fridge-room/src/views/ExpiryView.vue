@@ -1,8 +1,15 @@
 <template>
   <div class="page-container">
     <div class="page-header" :style="{ background: `linear-gradient(135deg, ${bannerColor}, #fff)` }">
-      <h1>⏰ 过期提醒</h1>
-      <div class="subtitle">共 {{ stats.total }} 件食物 · {{ expiredCount }} 件需处理</div>
+      <div class="header-top">
+        <div class="header-title">
+          <h1>⏰ 过期提醒</h1>
+          <div class="subtitle">共 {{ stats.total }} 件食物 · {{ expiredCount }} 件需处理</div>
+        </div>
+        <div class="user-avatar" :style="{ background: userStore.avatarColor }" @click="$router.push('/profile')">
+          {{ userStore.user?.nickname?.[0] || '?' }}
+        </div>
+      </div>
     </div>
 
     <div class="stats-row">
@@ -78,7 +85,9 @@ import { ref, computed, onMounted, watchEffect } from 'vue'
 import { showConfirmDialog, showToast } from 'vant'
 import dayjs from 'dayjs'
 import { getFoods, getExpiryStats, cleanupFood } from '@/api/foods'
+import { useUserStore } from '@/stores/user'
 
+const userStore = useUserStore()
 const stats = ref({ total: 0, normal: 0, warning: 0, soon: 0, expired: 0 })
 const foods = ref([])
 const currentFilter = ref('expired')
@@ -169,6 +178,40 @@ onMounted(loadData)
 </script>
 
 <style lang="less" scoped>
+.page-header {
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .header-title {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .user-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    color: #fff;
+    font-size: 20px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    cursor: pointer;
+    transition: transform 0.2s;
+
+    &:active {
+      transform: scale(0.92);
+    }
+  }
+}
+
 .stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

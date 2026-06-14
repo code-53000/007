@@ -1,8 +1,15 @@
 <template>
   <div class="page-container">
     <div class="page-header" style="background: linear-gradient(135deg, #7232dd, #c39bd3);">
-      <h1>🤝 共享空间</h1>
-      <div class="subtitle">公共调料 & 即将腾出的空间</div>
+      <div class="header-top">
+        <div class="header-title">
+          <h1>🤝 共享空间</h1>
+          <div class="subtitle">公共调料 & 即将腾出的空间</div>
+        </div>
+        <div class="user-avatar" :style="{ background: userStore.avatarColor }" @click="$router.push('/profile')">
+          {{ userStore.user?.nickname?.[0] || '?' }}
+        </div>
+      </div>
     </div>
 
     <van-tabs v-model:active="activeTab">
@@ -110,7 +117,9 @@ import {
   createSpaceNotice, updateSpaceNotice, deleteSpaceNotice,
 } from '@/api/shared'
 import { showToast, showConfirmDialog, showDialog } from 'vant'
+import { useUserStore } from '@/stores/user'
 
+const userStore = useUserStore()
 const activeTab = ref('seasoning')
 const seasonings = ref([])
 const spaces = ref([])
@@ -199,6 +208,40 @@ onMounted(loadData)
 </script>
 
 <style lang="less" scoped>
+.page-header {
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .header-title {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .user-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    color: #fff;
+    font-size: 20px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    cursor: pointer;
+    transition: transform 0.2s;
+
+    &:active {
+      transform: scale(0.92);
+    }
+  }
+}
+
 .list {
   display: flex;
   flex-direction: column;
