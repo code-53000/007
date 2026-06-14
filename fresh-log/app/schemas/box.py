@@ -19,6 +19,9 @@ class BoxCreate(BoxBase):
 
 class BoxUpdate(BaseModel):
     name: Optional[str] = None
+    floor: Optional[int] = Field(None, ge=1, le=10)
+    row: Optional[int] = Field(None, ge=1, le=10)
+    capacity: Optional[int] = Field(None, ge=1, le=100)
     description: Optional[str] = None
     is_public: Optional[bool] = None
     is_available: Optional[bool] = None

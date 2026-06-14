@@ -244,6 +244,7 @@ const onSaveBox = async () => {
     showEdit.value = false
     await loadData()
   } catch (e) {
+    showToast(e?.response?.data?.detail || '保存失败，请重试')
     return false
   }
 }
