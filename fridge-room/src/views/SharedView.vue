@@ -53,7 +53,24 @@
                   <span v-if="s.expiry_date">· 📅{{ formatDate(s.expiry_date) }}</span>
                 </div>
               </div>
-              <van-icon name="arrow" color="#c8c9cc" />
+              <div class="item-actions" @click.stop>
+                <van-button
+                  size="mini"
+                  :type="s.is_depleted ? 'success' : 'warning'"
+                  plain
+                  @click="toggleSeasoningDepleted(s, $event)"
+                >
+                  {{ s.is_depleted ? '恢复' : '用完' }}
+                </van-button>
+                <van-button
+                  size="mini"
+                  type="danger"
+                  plain
+                  @click="deleteSeasoningItem(s, $event)"
+                >
+                  删除
+                </van-button>
+              </div>
             </div>
           </div>
         </div>
@@ -97,7 +114,24 @@
                   <span v-if="n.description">· {{ n.description }}</span>
                 </div>
               </div>
-              <van-icon name="arrow" color="#c8c9cc" />
+              <div class="item-actions" @click.stop>
+                <van-button
+                  size="mini"
+                  :type="n.is_freed ? 'success' : 'warning'"
+                  plain
+                  @click="toggleSpaceFreed(n, $event)"
+                >
+                  {{ n.is_freed ? '撤销' : '释放' }}
+                </van-button>
+                <van-button
+                  size="mini"
+                  type="danger"
+                  plain
+                  @click="deleteSpaceItem(n, $event)"
+                >
+                  删除
+                </van-button>
+              </div>
             </div>
           </div>
         </div>
@@ -110,15 +144,17 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import {
   getSeasonings, getSpaceNotices,
-  createSeasoning, updateSeasoning, deleteSeasoning,
-  createSpaceNotice, updateSpaceNotice, deleteSpaceNotice,
+  updateSeasoning, deleteSeasoning,
+  updateSpaceNotice, deleteSpaceNotice,
 } from '@/api/shared'
-import { showToast, showConfirmDialog, showDialog } from 'vant'
+import { showToast, showConfirmDialog } from 'vant'
 import { useUserStore } from '@/stores/user'
 
+const router = useRouter()
 const userStore = useUserStore()
 const activeTab = ref('seasoning')
 const seasonings = ref([])
@@ -144,64 +180,64 @@ const loadData = async () => {
   } catch (e) {}
 }
 
-const openSeasoningForm = async (item = null) => {
+const openSeasoningForm = (item = null) => {
   if (!item) {
-    showDialog({
-      title: '功能提示',
-      message: '请使用表单添加调料。完整功能可在部署后使用弹窗或路由实现。',
-    })
+    router.push('/seasoning/add')
   } else {
-    try {
-      await showConfirmDialog({
-        title: `调料：${item.name}`,
-        message: '点击【确认】切换用完状态，或【取消】后点其他区域查看详情。',
-        confirmButtonText: item.is_depleted ? '恢复' : '标记用完',
-        cancelButtonText: '删除',
-      })
-      await updateSeasoning(item.id, { is_depleted: !item.is_depleted })
-      showToast('更新成功')
-      loadData()
-    } catch (e) {
-      if (e === 'cancel') {
-        try {
-          await showConfirmDialog({ title: '删除确认', message: `确定删除「${item.name}」？` })
-          await deleteSeasoning(item.id)
-          showToast('已删除')
-          loadData()
-        } catch (e2) {}
-      }
-    }
+    router.push({
+      path: `/seasoning/edit/${item.id}`,
+      params: { data: encodeURIComponent(JSON.stringify(item)) },
+    })
   }
 }
 
-const openSpaceForm = async (item = null) => {
+const openSpaceForm = (item = null) => {
   if (!item) {
-    showDialog({
-      title: '功能提示',
-      message: '请使用表单发布空间预告。完整功能可在部署后使用弹窗或路由实现。',
-    })
+    router.push('/space-notice/add')
   } else {
-    try {
-      await showConfirmDialog({
-        title: `空间预告`,
-        message: `释放日期：${formatDate(item.free_up_date)}`,
-        confirmButtonText: item.is_freed ? '撤销释放' : '标记已释放',
-        cancelButtonText: '删除',
-      })
-      await updateSpaceNotice(item.id, { is_freed: !item.is_freed })
-      showToast('更新成功')
-      loadData()
-    } catch (e) {
-      if (e === 'cancel') {
-        try {
-          await showConfirmDialog({ title: '删除确认', message: '确定删除这条预告？' })
-          await deleteSpaceNotice(item.id)
-          showToast('已删除')
-          loadData()
-        } catch (e2) {}
-      }
-    }
+    router.push({
+      path: `/space-notice/edit/${item.id}`,
+      params: { data: encodeURIComponent(JSON.stringify(item)) },
+    })
   }
+}
+
+const toggleSeasoningDepleted = async (item, e) => {
+  e.stopPropagation()
+  try {
+    await updateSeasoning(item.id, { is_depleted: !item.is_depleted })
+    showToast(item.is_depleted ? '已恢复' : '已标记用完')
+    loadData()
+  } catch (err) {}
+}
+
+const toggleSpaceFreed = async (item, e) => {
+  e.stopPropagation()
+  try {
+    await updateSpaceNotice(item.id, { is_freed: !item.is_freed })
+    showToast(item.is_freed ? '已撤销释放' : '已标记已释放')
+    loadData()
+  } catch (err) {}
+}
+
+const deleteSeasoningItem = async (item, e) => {
+  e.stopPropagation()
+  try {
+    await showConfirmDialog({ title: '删除确认', message: `确定删除「${item.name}」？` })
+    await deleteSeasoning(item.id)
+    showToast('已删除')
+    loadData()
+  } catch (err) {}
+}
+
+const deleteSpaceItem = async (item, e) => {
+  e.stopPropagation()
+  try {
+    await showConfirmDialog({ title: '删除确认', message: '确定删除这条预告？' })
+    await deleteSpaceNotice(item.id)
+    showToast('已删除')
+    loadData()
+  } catch (err) {}
 }
 
 onMounted(loadData)
@@ -314,6 +350,13 @@ onMounted(loadData)
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
+  }
+
+  .item-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
   }
 }
 </style>

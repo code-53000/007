@@ -74,6 +74,30 @@ const routes = [
     component: () => import('@/views/AddBox.vue'),
     meta: { requiresAuth: true, title: '新建格子' },
   },
+  {
+    path: '/seasoning/add',
+    name: 'AddSeasoning',
+    component: () => import('@/views/AddSeasoning.vue'),
+    meta: { requiresAuth: true, title: '添加调料' },
+  },
+  {
+    path: '/seasoning/edit/:id',
+    name: 'EditSeasoning',
+    component: () => import('@/views/AddSeasoning.vue'),
+    meta: { requiresAuth: true, title: '编辑调料' },
+  },
+  {
+    path: '/space-notice/add',
+    name: 'AddSpaceNotice',
+    component: () => import('@/views/AddSpaceNotice.vue'),
+    meta: { requiresAuth: true, title: '发布空间预告' },
+  },
+  {
+    path: '/space-notice/edit/:id',
+    name: 'EditSpaceNotice',
+    component: () => import('@/views/AddSpaceNotice.vue'),
+    meta: { requiresAuth: true, title: '编辑空间预告' },
+  },
 ]
 
 const router = createRouter({
