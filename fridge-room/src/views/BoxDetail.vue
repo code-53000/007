@@ -184,11 +184,17 @@ const isOwner = computed(() => box.value?.owner_id === userStore.userId)
 
 const activeFoods = computed(() => box.value?.foods || [])
 
-const actions = computed(() => [
-  { name: '标记已清理', action: 'cleanup' },
-  { name: '查看详情', action: 'detail' },
-  { name: '删除记录', action: 'delete', color: '#ee0a24' },
-])
+const actions = computed(() => {
+  const list = [
+    { name: '查看详情', action: 'detail' },
+    { name: '标记已清理', action: 'cleanup' },
+  ]
+  if (currentFood.value?.owner_id === userStore.userId) {
+    list.splice(1, 0, { name: '编辑食物', action: 'edit' })
+  }
+  list.push({ name: '删除记录', action: 'delete', color: '#ee0a24' })
+  return list
+})
 
 const statusClass = (s) => {
   const map = { '正常': 'normal', '即将到期': 'soon', '临期': 'warning', '已过期': 'expired' }
@@ -272,7 +278,10 @@ const handleAction = async (a) => {
   if (!currentFood.value) return
   const f = currentFood.value
 
-  if (a.action === 'cleanup') {
+  if (a.action === 'edit') {
+    router.push(`/food/edit/${f.id}`)
+    actionSheet.value = false
+  } else if (a.action === 'cleanup') {
     try {
       await showConfirmDialog({
         title: '确认清理',

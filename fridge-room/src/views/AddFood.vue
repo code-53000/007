@@ -134,7 +134,7 @@
           v-for="b in boxes"
           :key="b.id"
           class="box-picker-item"
-          :class="{ active: form.box_id === b.id }"
+          :class="{ active: Number(form.box_id) === Number(b.id) }"
           @click="selectBox(b)"
         >
           <span class="avatar" :style="{ background: b.owner?.avatar_color || '#c8c9cc' }">
@@ -187,7 +187,7 @@ const updateStoredAt = (val) => {
 }
 
 watch(() => form.box_id, async () => {
-  const b = boxes.value.find(x => x.id === form.box_id)
+  const b = boxes.value.find(x => Number(x.id) === Number(form.box_id))
   if (b && b.is_public) {
     form.expiry_days = 5
   } else {
@@ -214,7 +214,7 @@ const expiryColor = computed(() => {
 })
 
 const selectedBoxName = computed(() => {
-  const b = boxes.value.find(x => x.id === form.box_id)
+  const b = boxes.value.find(x => Number(x.id) === Number(form.box_id))
   return b ? b.name : ''
 })
 

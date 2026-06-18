@@ -81,6 +81,14 @@ def create_food(
     if box.owner_id and box.owner_id != current_user.id and not box.is_public:
         raise HTTPException(status_code=403, detail="无权使用此私有格子")
 
+    active_foods = [f for f in box.foods if not f.is_cleaned]
+    used_capacity = sum(f.quantity for f in active_foods)
+    if used_capacity + food_data.quantity > box.capacity:
+        raise HTTPException(
+            status_code=400,
+            detail=f"格子容量不足，当前已用{used_capacity}份，剩余{box.capacity - used_capacity}份"
+        )
+
     food = Food(
         name=food_data.name,
         category=food_data.category,
@@ -122,6 +130,21 @@ def update_food(
         raise HTTPException(status_code=400, detail="已清理的食物无法修改")
 
     update_data = food_data.model_dump(exclude_unset=True)
+
+    new_box_id = update_data.get("box_id", food.box_id)
+    new_quantity = update_data.get("quantity", food.quantity)
+    if new_box_id != food.box_id or new_quantity != food.quantity:
+        box = db.query(Box).filter(Box.id == new_box_id).first()
+        if not box:
+            raise HTTPException(status_code=400, detail="指定的格子不存在")
+        active_foods = [f for f in box.foods if not f.is_cleaned and f.id != food.id]
+        used_capacity = sum(f.quantity for f in active_foods)
+        if used_capacity + new_quantity > box.capacity:
+            raise HTTPException(
+                status_code=400,
+                detail=f"格子容量不足，当前已用{used_capacity}份，剩余{box.capacity - used_capacity}份"
+            )
+
     for key, value in update_data.items():
         setattr(food, key, value)
 

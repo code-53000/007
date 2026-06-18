@@ -64,6 +64,16 @@
           </div>
           <div class="right-col">
             <van-button
+              v-if="f.owner_id === userStore.userId"
+              size="small"
+              type="default"
+              plain
+              @click.stop="onEdit(f)"
+              style="margin-right: 6px"
+            >
+              编辑
+            </van-button>
+            <van-button
               size="small"
               :type="f.days_until_expiry < 0 ? 'danger' : 'primary'"
               plain
@@ -82,12 +92,14 @@
 
 <script setup>
 import { ref, computed, onMounted, watchEffect } from 'vue'
+import { useRouter } from 'vue-router'
 import { showConfirmDialog, showToast } from 'vant'
 import dayjs from 'dayjs'
 import { getFoods, getExpiryStats, cleanupFood } from '@/api/foods'
 import { useUserStore } from '@/stores/user'
 
 const userStore = useUserStore()
+const router = useRouter()
 const stats = ref({ total: 0, normal: 0, warning: 0, soon: 0, expired: 0 })
 const foods = ref([])
 const currentFilter = ref('expired')
@@ -145,6 +157,10 @@ const formatDate = (d) => dayjs(d).format('M/D HH:mm')
 
 const filterBy = (key) => {
   currentFilter.value = key
+}
+
+const onEdit = (f) => {
+  router.push(`/food/edit/${f.id}`)
 }
 
 const onCleanup = async (f) => {

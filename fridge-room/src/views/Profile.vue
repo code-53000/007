@@ -112,7 +112,7 @@ import { useRouter } from 'vue-router'
 import { showConfirmDialog, showToast } from 'vant'
 import { useUserStore } from '@/stores/user'
 import { getBoxes } from '@/api/boxes'
-import { getFoods, getMyExpiring } from '@/api/foods'
+import { getFoods } from '@/api/foods'
 import { getCleanupRecords } from '@/api/shared'
 
 const userStore = useUserStore()
@@ -166,15 +166,17 @@ const onLogout = async () => {
 const loadData = async () => {
   try {
     await userStore.fetchRoommates()
-    const [boxes, foods, expiring, recs] = await Promise.all([
+    const [boxes, foods, recs] = await Promise.all([
       getBoxes(),
       getFoods({ owner_id: userStore.userId }),
-      getMyExpiring(7),
       getCleanupRecords({ operator_id: userStore.userId }),
     ])
     myBoxes.value = boxes.filter(b => b.owner_id === userStore.userId).length
-    myActiveFoods.value = foods.filter(f => !f.is_cleaned).length
-    expiringCount.value = expiring.length
+    const activeFoods = foods.filter(f => !f.is_cleaned)
+    myActiveFoods.value = activeFoods.length
+    expiringCount.value = activeFoods.filter(f => 
+      f.expiry_status === '即将到期' || f.expiry_status === '临期'
+    ).length
     cleanupCount.value = recs.length
   } catch (e) {}
 }

@@ -72,7 +72,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import dayjs from 'dayjs'
 import { getOperationLogs, getLogsSummary } from '@/api/shared'
 
@@ -127,6 +127,12 @@ const actionClass = (a) => {
 }
 
 const formatTime = (t) => dayjs(t).format('M月D日 HH:mm:ss')
+
+watch([days, filterType, filterAction], () => {
+  logs.value = []
+  finished.value = false
+  loadLogs()
+})
 
 const loadLogs = async () => {
   try {
