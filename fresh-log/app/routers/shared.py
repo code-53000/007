@@ -169,6 +169,13 @@ def create_space_notice(
         if not box:
             raise HTTPException(status_code=400, detail="指定的格子不存在")
 
+        existing = db.query(SpaceNotice).filter(
+            SpaceNotice.box_id == data.box_id,
+            SpaceNotice.is_freed == False,
+        ).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="该格子已有待释放的预告，请先处理")
+
     item = SpaceNotice(
         **data.model_dump(),
         user_id=current_user.id,
@@ -205,10 +212,19 @@ def update_space_notice(
 
     update_data = data.model_dump(exclude_unset=True)
 
-    if "box_id" in update_data and update_data["box_id"] is not None:
-        box = db.query(Box).filter(Box.id == update_data["box_id"]).first()
-        if not box:
-            raise HTTPException(status_code=400, detail="指定的格子不存在")
+    if "box_id" in update_data and update_data["box_id"] != item.box_id:
+        if update_data["box_id"] is not None:
+            box = db.query(Box).filter(Box.id == update_data["box_id"]).first()
+            if not box:
+                raise HTTPException(status_code=400, detail="指定的格子不存在")
+
+            existing = db.query(SpaceNotice).filter(
+                SpaceNotice.box_id == update_data["box_id"],
+                SpaceNotice.is_freed == False,
+                SpaceNotice.id != notice_id,
+            ).first()
+            if existing:
+                raise HTTPException(status_code=400, detail="该格子已有待释放的预告，请先处理")
 
     for key, value in update_data.items():
         setattr(item, key, value)

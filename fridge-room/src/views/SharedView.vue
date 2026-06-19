@@ -143,8 +143,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import dayjs from 'dayjs'
 import {
   getSeasonings, getSpaceNotices,
@@ -155,6 +155,7 @@ import { showToast, showConfirmDialog } from 'vant'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 const activeTab = ref('seasoning')
 const seasonings = ref([])
@@ -235,6 +236,16 @@ const deleteSpaceItem = async (item, e) => {
 }
 
 onMounted(loadData)
+
+watch(
+  () => route.fullPath,
+  (to, from) => {
+    if (to === from) return
+    if (to.includes('/shared') && from && (from.includes('/seasoning/') || from.includes('/space-notice/'))) {
+      loadData()
+    }
+  }
+)
 </script>
 
 <style lang="less" scoped>

@@ -51,6 +51,7 @@ class SpaceNoticeCreate(SpaceNoticeBase):
 
 
 class SpaceNoticeUpdate(BaseModel):
+    box_id: Optional[int] = None
     free_up_date: Optional[date] = None
     description: Optional[str] = None
     space_size: Optional[str] = None
