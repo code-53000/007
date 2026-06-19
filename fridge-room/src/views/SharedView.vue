@@ -184,10 +184,7 @@ const openSeasoningForm = (item = null) => {
   if (!item) {
     router.push('/seasoning/add')
   } else {
-    router.push({
-      path: `/seasoning/edit/${item.id}`,
-      params: { data: encodeURIComponent(JSON.stringify(item)) },
-    })
+    router.push(`/seasoning/edit/${item.id}`)
   }
 }
 
@@ -195,10 +192,7 @@ const openSpaceForm = (item = null) => {
   if (!item) {
     router.push('/space-notice/add')
   } else {
-    router.push({
-      path: `/space-notice/edit/${item.id}`,
-      params: { data: encodeURIComponent(JSON.stringify(item)) },
-    })
+    router.push(`/space-notice/edit/${item.id}`)
   }
 }
 

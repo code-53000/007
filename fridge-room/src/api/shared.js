@@ -63,6 +63,13 @@ export const updateSeasoning = (id, data) => {
   })
 }
 
+export const getSeasoning = (id) => {
+  return request({
+    url: `/api/seasonings/${id}`,
+    method: 'get',
+  })
+}
+
 export const deleteSeasoning = (id) => {
   return request({
     url: `/api/seasonings/${id}`,
@@ -91,6 +98,13 @@ export const updateSpaceNotice = (id, data) => {
     url: `/api/space-notices/${id}`,
     method: 'put',
     data,
+  })
+}
+
+export const getSpaceNotice = (id) => {
+  return request({
+    url: `/api/space-notices/${id}`,
+    method: 'get',
   })
 }
 

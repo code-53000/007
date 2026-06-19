@@ -96,6 +96,24 @@ def update_seasoning(
     return CommonSeasoningResponse.model_validate(resp)
 
 
+@seasoning_router.get("/{item_id}", response_model=CommonSeasoningResponse, summary="获取单个调料详情")
+def get_seasoning(
+    item_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    item = db.query(CommonSeasoning).filter(CommonSeasoning.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="调料不存在")
+
+    resp = {c.name: getattr(item, c.name) for c in item.__table__.columns}
+    resp["adder"] = UserSimple(
+        id=item.adder.id, nickname=item.adder.nickname,
+        avatar_color=item.adder.avatar_color,
+    ) if item.adder else None
+    return CommonSeasoningResponse.model_validate(resp)
+
+
 @seasoning_router.delete("/{item_id}", summary="删除调料")
 def delete_seasoning(
     item_id: int,
@@ -186,6 +204,12 @@ def update_space_notice(
         raise HTTPException(status_code=403, detail="只有发布者可以修改")
 
     update_data = data.model_dump(exclude_unset=True)
+
+    if "box_id" in update_data and update_data["box_id"] is not None:
+        box = db.query(Box).filter(Box.id == update_data["box_id"]).first()
+        if not box:
+            raise HTTPException(status_code=400, detail="指定的格子不存在")
+
     for key, value in update_data.items():
         setattr(item, key, value)
     db.commit()
@@ -193,6 +217,24 @@ def update_space_notice(
 
     log_operation(db, current_user, "update_space_notice", "space_notice", item.id,
                   format_detail(**update_data))
+
+    resp = {c.name: getattr(item, c.name) for c in item.__table__.columns}
+    resp["user"] = UserSimple(
+        id=item.user.id, nickname=item.user.nickname,
+        avatar_color=item.user.avatar_color,
+    ) if item.user else None
+    return SpaceNoticeResponse.model_validate(resp)
+
+
+@space_router.get("/{notice_id}", response_model=SpaceNoticeResponse, summary="获取单个空间预告详情")
+def get_space_notice(
+    notice_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    item = db.query(SpaceNotice).filter(SpaceNotice.id == notice_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="预告不存在")
 
     resp = {c.name: getattr(item, c.name) for c in item.__table__.columns}
     resp["user"] = UserSimple(

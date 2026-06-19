@@ -110,6 +110,7 @@ import {
   createSeasoning,
   updateSeasoning,
   deleteSeasoning,
+  getSeasoning,
 } from '@/api/shared'
 
 const route = useRoute()
@@ -146,6 +147,27 @@ const updateExpiryDate = (val) => {
 const onCatConfirm = ({ selectedOptions }) => {
   form.category = selectedOptions[0].value
   showCatPicker.value = false
+}
+
+const loadDetail = async () => {
+  if (!isEdit.value) return
+  try {
+    const data = await getSeasoning(seasoningId.value)
+    Object.assign(form, {
+      name: data.name || '',
+      brand: data.brand || '',
+      category: data.category || '调味',
+      quantity: data.quantity || '',
+      location_note: data.location_note || '',
+      expiry_date: data.expiry_date || null,
+      is_depleted: data.is_depleted || false,
+    })
+    if (form.expiry_date) {
+      expiryDateStr.value = dayjs(form.expiry_date).format('YYYY-MM-DD')
+    }
+  } catch (e) {
+    showToast('加载失败')
+  }
 }
 
 const onSubmit = async () => {
@@ -191,21 +213,7 @@ const onDelete = async () => {
 }
 
 onMounted(async () => {
-  if (isEdit.value && route.params.data) {
-    const data = JSON.parse(decodeURIComponent(route.params.data))
-    Object.assign(form, {
-      name: data.name || '',
-      brand: data.brand || '',
-      category: data.category || '调味',
-      quantity: data.quantity || '',
-      location_note: data.location_note || '',
-      expiry_date: data.expiry_date || null,
-      is_depleted: data.is_depleted || false,
-    })
-    if (form.expiry_date) {
-      expiryDateStr.value = dayjs(form.expiry_date).format('YYYY-MM-DD')
-    }
-  }
+  await loadDetail()
 })
 </script>
 

@@ -15,6 +15,7 @@ router = APIRouter(prefix="/api/boxes", tags=["冰箱格子"])
 def list_boxes(
     floor: Optional[int] = None,
     is_public: Optional[bool] = None,
+    owner_id: Optional[int] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -23,6 +24,8 @@ def list_boxes(
         query = query.filter(Box.floor == floor)
     if is_public is not None:
         query = query.filter(Box.is_public == is_public)
+    if owner_id is not None:
+        query = query.filter(Box.owner_id == owner_id)
 
     boxes = query.order_by(Box.floor, Box.row, Box.id).all()
 

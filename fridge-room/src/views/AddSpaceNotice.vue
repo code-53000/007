@@ -94,9 +94,9 @@
     </van-form>
 
     <van-popup v-model:show="showBoxPicker" round position="bottom" style="max-height: 60%">
-      <div class="picker-title">选择格子</div>
+      <div class="picker-title">选择我的格子</div>
       <van-cell-group v-if="!boxes.length">
-        <van-empty description="暂无格子" />
+        <van-empty description="暂无我的格子" />
       </van-cell-group>
       <div v-else class="box-picker-list">
         <div
@@ -128,11 +128,14 @@ import {
   createSpaceNotice,
   updateSpaceNotice,
   deleteSpaceNotice,
+  getSpaceNotice,
 } from '@/api/shared'
 import { getBoxes } from '@/api/boxes'
+import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 const loading = ref(false)
 const deleting = ref(false)
 const showBoxPicker = ref(false)
@@ -172,10 +175,31 @@ const clearBox = () => {
   form.box_id = null
 }
 
-const loadBoxes = async () => {
+const loadMyBoxes = async () => {
   try {
-    boxes.value = await getBoxes()
-  } catch (e) {}
+    boxes.value = await getBoxes({ owner_id: userStore.userId })
+  } catch (e) {
+    showToast('加载格子列表失败')
+  }
+}
+
+const loadDetail = async () => {
+  if (!isEdit.value) return
+  try {
+    const data = await getSpaceNotice(noticeId.value)
+    Object.assign(form, {
+      box_id: data.box_id || null,
+      free_up_date: data.free_up_date || null,
+      description: data.description || '',
+      space_size: data.space_size || '',
+      is_freed: data.is_freed || false,
+    })
+    if (form.free_up_date) {
+      freeUpDateStr.value = dayjs(form.free_up_date).format('YYYY-MM-DD')
+    }
+  } catch (e) {
+    showToast('加载失败')
+  }
 }
 
 const onSubmit = async () => {
@@ -220,20 +244,9 @@ const onDelete = async () => {
 }
 
 onMounted(async () => {
-  await loadBoxes()
-  if (isEdit.value && route.params.data) {
-    const data = JSON.parse(decodeURIComponent(route.params.data))
-    Object.assign(form, {
-      box_id: data.box_id || null,
-      free_up_date: data.free_up_date || null,
-      description: data.description || '',
-      space_size: data.space_size || '',
-      is_freed: data.is_freed || false,
-    })
-    if (form.free_up_date) {
-      freeUpDateStr.value = dayjs(form.free_up_date).format('YYYY-MM-DD')
-    }
-  } else {
+  await loadMyBoxes()
+  await loadDetail()
+  if (!isEdit.value) {
     freeUpDateStr.value = dayjs().add(1, 'day').format('YYYY-MM-DD')
     updateFreeUpDate(freeUpDateStr.value)
   }
