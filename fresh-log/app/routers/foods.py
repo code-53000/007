@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User, Food, Box, CleanupRecord
 from app.schemas import (
-    FoodCreate, FoodUpdate, FoodCleanup, FoodResponse, ExpiryStats
+    FoodCreate, FoodUpdate, FoodCleanup, FoodResponse, ExpiryStats,
+    BulkCleanupRequest, BulkCleanupResponse
 )
 from app.core import (
     get_current_user, log_operation, format_detail,
@@ -24,6 +25,7 @@ def list_foods(
     category: Optional[str] = None,
     status: Optional[str] = Query(None, description="expired/soon/warning/normal"),
     only_active: bool = True,
+    sort_by_expiry: bool = False,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -37,7 +39,7 @@ def list_foods(
     if category is not None:
         query = query.filter(Food.category == category)
 
-    foods = query.order_by(Food.stored_at.desc()).all()
+    foods = query.all()
 
     result = []
     for food in foods:
@@ -52,6 +54,12 @@ def list_foods(
             if enriched["expiry_status"] != status_map.get(status, ""):
                 continue
         result.append(FoodResponse.model_validate(enriched))
+
+    if sort_by_expiry:
+        result.sort(key=lambda x: x.days_until_expiry)
+    else:
+        result.sort(key=lambda x: x.stored_at, reverse=True)
+
     return result
 
 
@@ -190,6 +198,80 @@ def cleanup_food(
                                note=cleanup_data.note))
 
     return FoodResponse.model_validate(enrich_food_with_expiry(food))
+
+
+@router.post("/bulk-cleanup", response_model=BulkCleanupResponse, summary="批量标记食物已清理")
+def bulk_cleanup_foods(
+    bulk_data: BulkCleanupRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    success_count = 0
+    failed_ids = []
+    now = datetime.utcnow()
+
+    try:
+        for food_id in bulk_data.food_ids:
+            try:
+                food = db.query(Food).filter(Food.id == food_id).first()
+                if not food or food.is_cleaned:
+                    failed_ids.append(food_id)
+                    continue
+
+                food.is_cleaned = True
+                food.cleaned_at = now
+                food.cleaned_by = current_user.id
+
+                record = CleanupRecord(
+                    food_id=food.id,
+                    operator_id=current_user.id,
+                    action="清理" if food.owner_id == current_user.id else "代清理",
+                    note=bulk_data.note,
+                )
+                db.add(record)
+                success_count += 1
+            except Exception:
+                failed_ids.append(food_id)
+
+        db.commit()
+
+        for food_id in bulk_data.food_ids:
+            if food_id not in failed_ids:
+                food = db.query(Food).filter(Food.id == food_id).first()
+                if food:
+                    action = "清理" if food.owner_id == current_user.id else "代清理"
+                    log_operation(db, current_user, "cleanup_food", "food", food.id,
+                                  format_detail(name=food.name, action=action,
+                                               note=bulk_data.note))
+
+        return BulkCleanupResponse(
+            success=success_count,
+            failed=len(failed_ids),
+            failed_ids=failed_ids
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"批量清理失败: {str(e)}")
+
+
+@router.get("/mine/list", response_model=List[FoodResponse], summary="获取我的食物列表（按临期排序）")
+def get_my_foods(
+    only_active: bool = True,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    query = db.query(Food).filter(Food.owner_id == current_user.id)
+    if only_active:
+        query = query.filter(Food.is_cleaned == False)
+
+    foods = query.all()
+    result = []
+    for food in foods:
+        enriched = enrich_food_with_expiry(food)
+        result.append(FoodResponse.model_validate(enriched))
+
+    result.sort(key=lambda x: x.days_until_expiry)
+    return result
 
 
 @router.delete("/{food_id}", summary="删除食物记录")

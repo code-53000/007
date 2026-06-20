@@ -37,6 +37,7 @@
     <div class="card">
       <van-cell-group inset>
         <van-cell title="编辑个人信息" is-link icon="edit" @click="openEditProfile" />
+        <van-cell title="我的食物" is-link icon="friends-o" to="/my-foods" />
         <van-cell title="清理记录" is-link icon="delete" to="/cleanup" />
         <van-cell title="操作记录" is-link icon="orders-o" to="/logs" />
       </van-cell-group>

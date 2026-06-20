@@ -67,3 +67,19 @@ export const getCategories = () => {
     method: 'get',
   })
 }
+
+export const bulkCleanupFoods = (data) => {
+  return request({
+    url: '/api/foods/bulk-cleanup',
+    method: 'post',
+    data,
+  })
+}
+
+export const getMyFoods = (params = {}) => {
+  return request({
+    url: '/api/foods/mine/list',
+    method: 'get',
+    params,
+  })
+}

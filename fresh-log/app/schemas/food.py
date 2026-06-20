@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from app.schemas.user import UserSimple
 
 
@@ -57,3 +57,14 @@ class ExpiryStats(BaseModel):
     warning: int = 0
     soon: int = 0
     expired: int = 0
+
+
+class BulkCleanupRequest(BaseModel):
+    food_ids: List[int] = Field(..., min_length=1)
+    note: Optional[str] = None
+
+
+class BulkCleanupResponse(BaseModel):
+    success: int = 0
+    failed: int = 0
+    failed_ids: List[int] = []

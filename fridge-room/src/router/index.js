@@ -69,6 +69,12 @@ const routes = [
     meta: { requiresAuth: true, title: '我的', tabbar: true },
   },
   {
+    path: '/my-foods',
+    name: 'MyFoods',
+    component: () => import('@/views/MyFoodsView.vue'),
+    meta: { requiresAuth: true, title: '我的食物' },
+  },
+  {
     path: '/box/add',
     name: 'AddBox',
     component: () => import('@/views/AddBox.vue'),

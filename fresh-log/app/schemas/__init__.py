@@ -6,7 +6,8 @@ from app.schemas.box import (
     BoxBase, BoxCreate, BoxUpdate, BoxResponse, BoxWithFoods
 )
 from app.schemas.food import (
-    FoodBase, FoodCreate, FoodUpdate, FoodCleanup, FoodResponse, ExpiryStats
+    FoodBase, FoodCreate, FoodUpdate, FoodCleanup, FoodResponse, ExpiryStats,
+    BulkCleanupRequest, BulkCleanupResponse
 )
 from app.schemas.cleanup import (
     CleanupRecordBase, CleanupRecordResponse,
@@ -23,6 +24,7 @@ __all__ = [
     "UserSimple", "Token", "TokenData",
     "BoxBase", "BoxCreate", "BoxUpdate", "BoxResponse", "BoxWithFoods",
     "FoodBase", "FoodCreate", "FoodUpdate", "FoodCleanup", "FoodResponse", "ExpiryStats",
+    "BulkCleanupRequest", "BulkCleanupResponse",
     "CleanupRecordBase", "CleanupRecordResponse",
     "OperationLogBase", "OperationLogResponse",
     "CommonSeasoningBase", "CommonSeasoningCreate", "CommonSeasoningUpdate",

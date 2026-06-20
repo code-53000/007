@@ -28,9 +28,27 @@
     <div class="card">
       <div class="section-title">
         <span>{{ currentFilterLabel }}</span>
-        <van-dropdown-menu>
-          <van-dropdown-item v-model="filterCat" :options="catOptions" />
-        </van-dropdown-menu>
+        <div class="title-actions">
+          <van-button
+            v-if="!isSelectMode"
+            size="small"
+            type="primary"
+            plain
+            @click="toggleSelectMode"
+            style="margin-right: 8px"
+          >
+            多选
+          </van-button>
+          <template v-else>
+            <van-checkbox v-model="selectAll" @change="onSelectAll" style="margin-right: 8px">
+              全选
+            </van-checkbox>
+            <van-button size="small" type="default" plain @click="toggleSelectMode">取消</van-button>
+          </template>
+          <van-dropdown-menu>
+            <van-dropdown-item v-model="filterCat" :options="catOptions" />
+          </van-dropdown-menu>
+        </div>
       </div>
 
       <div v-if="filteredFoods.length === 0" class="empty-state">
@@ -43,8 +61,12 @@
           v-for="f in filteredFoods"
           :key="f.id"
           class="food-card"
-          :class="statusClass(f.expiry_status)"
+          :class="[statusClass(f.expiry_status), { selected: isSelectMode && selectedIds.includes(f.id) }]"
+          @click="isSelectMode && toggleSelect(f.id)"
         >
+          <div v-if="isSelectMode" class="checkbox-col" @click.stop="toggleSelect(f.id)">
+            <van-checkbox :model-value="selectedIds.includes(f.id)" />
+          </div>
           <div class="left-col">
             <div class="icon">{{ categoryIcon(f.category) }}</div>
             <div class="days-badge" :class="statusClass(f.expiry_status)">
@@ -62,7 +84,7 @@
               <span>→ 到期 {{ formatDate(f.expiry_date) }}</span>
             </div>
           </div>
-          <div class="right-col">
+          <div v-if="!isSelectMode" class="right-col">
             <van-button
               v-if="f.owner_id === userStore.userId"
               size="small"
@@ -77,13 +99,18 @@
               size="small"
               :type="f.days_until_expiry < 0 ? 'danger' : 'primary'"
               plain
-              @click="onCleanup(f)"
+              @click.stop="onCleanup(f)"
             >
               清理
             </van-button>
           </div>
         </div>
       </div>
+    </div>
+
+    <div v-if="isSelectMode && selectedIds.length > 0" class="bulk-action-bar">
+      <div class="selected-info">已选 {{ selectedIds.length }} 项</div>
+      <van-button type="danger" @click="onBulkCleanup">批量清理</van-button>
     </div>
 
     <AppTabbar />
@@ -95,7 +122,7 @@ import { ref, computed, onMounted, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 import { showConfirmDialog, showToast } from 'vant'
 import dayjs from 'dayjs'
-import { getFoods, getExpiryStats, cleanupFood } from '@/api/foods'
+import { getFoods, getExpiryStats, cleanupFood, bulkCleanupFoods } from '@/api/foods'
 import { useUserStore } from '@/stores/user'
 
 const userStore = useUserStore()
@@ -104,6 +131,9 @@ const stats = ref({ total: 0, normal: 0, warning: 0, soon: 0, expired: 0 })
 const foods = ref([])
 const currentFilter = ref('expired')
 const filterCat = ref(0)
+const isSelectMode = ref(false)
+const selectedIds = ref([])
+const selectAll = ref(false)
 
 const categories = [{ text: '全部分类', value: 0 }]
 const catOptions = computed(() => categories)
@@ -159,6 +189,37 @@ const filterBy = (key) => {
   currentFilter.value = key
 }
 
+const toggleSelectMode = () => {
+  isSelectMode.value = !isSelectMode.value
+  selectedIds.value = []
+  selectAll.value = false
+}
+
+const toggleSelect = (id) => {
+  const idx = selectedIds.value.indexOf(id)
+  if (idx > -1) {
+    selectedIds.value.splice(idx, 1)
+  } else {
+    selectedIds.value.push(id)
+  }
+}
+
+const onSelectAll = (val) => {
+  if (val) {
+    selectedIds.value = filteredFoods.value.map(f => f.id)
+  } else {
+    selectedIds.value = []
+  }
+}
+
+watchEffect(() => {
+  if (filteredFoods.value.length > 0 && selectedIds.value.length === filteredFoods.value.length) {
+    selectAll.value = true
+  } else {
+    selectAll.value = false
+  }
+})
+
 const onEdit = (f) => {
   router.push(`/food/edit/${f.id}`)
 }
@@ -171,6 +232,25 @@ const onCleanup = async (f) => {
     })
     await cleanupFood(f.id)
     showToast('已清理')
+    loadData()
+  } catch (e) {}
+}
+
+const onBulkCleanup = async () => {
+  try {
+    await showConfirmDialog({
+      title: '批量清理确认',
+      message: `确定清理选中的 ${selectedIds.value.length} 项食物吗？`,
+    })
+    const res = await bulkCleanupFoods({ food_ids: selectedIds.value })
+    if (res.failed > 0) {
+      showToast(`成功清理 ${res.success} 项，${res.failed} 项失败`)
+    } else {
+      showToast(`已成功清理 ${res.success} 项`)
+    }
+    isSelectMode.value = false
+    selectedIds.value = []
+    selectAll.value = false
     loadData()
   } catch (e) {}
 }
@@ -257,6 +337,12 @@ onMounted(loadData)
   }
 }
 
+.title-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .food-list {
   display: flex;
   flex-direction: column;
@@ -271,6 +357,7 @@ onMounted(loadData)
   border-radius: 12px;
   background: #fff;
   border-left: 4px solid #07c160;
+  transition: all 0.2s;
 
   &.expired {
     border-left-color: #969799;
@@ -283,6 +370,16 @@ onMounted(loadData)
 
   &.soon {
     border-left-color: #ff976a;
+  }
+
+  &.selected {
+    background: #e8f3ff;
+    box-shadow: 0 0 0 2px #1989fa;
+  }
+
+  .checkbox-col {
+    flex-shrink: 0;
+    padding: 4px;
   }
 
   .left-col {
@@ -344,6 +441,26 @@ onMounted(loadData)
 
   .right-col {
     flex-shrink: 0;
+  }
+}
+
+.bulk-action-bar {
+  position: fixed;
+  bottom: 60px;
+  left: 0;
+  right: 0;
+  background: #fff;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+  z-index: 100;
+
+  .selected-info {
+    font-size: 14px;
+    color: #323233;
+    font-weight: 500;
   }
 }
 </style>
