@@ -40,7 +40,7 @@
             多选
           </van-button>
           <template v-else>
-            <van-checkbox v-model="selectAll" @change="onSelectAll" style="margin-right: 8px">
+            <van-checkbox v-model="isAllSelected" style="margin-right: 8px">
               全选
             </van-checkbox>
             <van-button size="small" type="default" plain @click="toggleSelectMode">取消</van-button>
@@ -118,7 +118,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watchEffect } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { showConfirmDialog, showToast } from 'vant'
 import dayjs from 'dayjs'
@@ -133,7 +133,6 @@ const currentFilter = ref('expired')
 const filterCat = ref(0)
 const isSelectMode = ref(false)
 const selectedIds = ref([])
-const selectAll = ref(false)
 
 const categories = [{ text: '全部分类', value: 0 }]
 const catOptions = computed(() => categories)
@@ -170,6 +169,21 @@ const filteredFoods = computed(() => {
   return list
 })
 
+const isAllSelected = computed({
+  get() {
+    return filteredFoods.value.length > 0 &&
+      filteredFoods.value.every(f => selectedIds.value.includes(f.id))
+  },
+  set(val) {
+    if (val) {
+      selectedIds.value = [...new Set([...selectedIds.value, ...filteredFoods.value.map(f => f.id)])]
+    } else {
+      const currentIds = new Set(filteredFoods.value.map(f => f.id))
+      selectedIds.value = selectedIds.value.filter(id => !currentIds.has(id))
+    }
+  }
+})
+
 const statusClass = (s) => {
   const map = { '正常': 'normal', '即将到期': 'soon', '临期': 'warning', '已过期': 'expired' }
   return map[s] || 'normal'
@@ -189,10 +203,13 @@ const filterBy = (key) => {
   currentFilter.value = key
 }
 
+watch([currentFilter, filterCat], () => {
+  selectedIds.value = []
+})
+
 const toggleSelectMode = () => {
   isSelectMode.value = !isSelectMode.value
   selectedIds.value = []
-  selectAll.value = false
 }
 
 const toggleSelect = (id) => {
@@ -203,22 +220,6 @@ const toggleSelect = (id) => {
     selectedIds.value.push(id)
   }
 }
-
-const onSelectAll = (val) => {
-  if (val) {
-    selectedIds.value = filteredFoods.value.map(f => f.id)
-  } else {
-    selectedIds.value = []
-  }
-}
-
-watchEffect(() => {
-  if (filteredFoods.value.length > 0 && selectedIds.value.length === filteredFoods.value.length) {
-    selectAll.value = true
-  } else {
-    selectAll.value = false
-  }
-})
 
 const onEdit = (f) => {
   router.push(`/food/edit/${f.id}`)
@@ -250,7 +251,6 @@ const onBulkCleanup = async () => {
     }
     isSelectMode.value = false
     selectedIds.value = []
-    selectAll.value = false
     loadData()
   } catch (e) {}
 }
