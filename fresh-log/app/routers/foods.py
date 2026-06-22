@@ -89,6 +89,9 @@ def create_food(
     if box.owner_id and box.owner_id != current_user.id and not box.is_public:
         raise HTTPException(status_code=403, detail="无权使用此私有格子")
 
+    if not box.is_public and box.box_status in ("grace", "released"):
+        raise HTTPException(status_code=400, detail="该格子已过期，无法再放入食物，请先将食物取出")
+
     active_foods = [f for f in box.foods if not f.is_cleaned]
     used_capacity = sum(f.quantity for f in active_foods)
     if used_capacity + food_data.quantity > box.capacity:
@@ -145,6 +148,8 @@ def update_food(
         box = db.query(Box).filter(Box.id == new_box_id).first()
         if not box:
             raise HTTPException(status_code=400, detail="指定的格子不存在")
+        if not box.is_public and box.box_status in ("grace", "released"):
+            raise HTTPException(status_code=400, detail="该格子已过期，无法放入食物")
         active_foods = [f for f in box.foods if not f.is_cleaned and f.id != food.id]
         used_capacity = sum(f.quantity for f in active_foods)
         if used_capacity + new_quantity > box.capacity:

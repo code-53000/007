@@ -126,12 +126,12 @@
 
     <van-popup v-model:show="showBoxPicker" round position="bottom" style="max-height: 60%">
       <div class="picker-title">选择格子</div>
-      <van-cell-group v-if="!boxes.length">
+      <van-cell-group v-if="!availableBoxes.length">
         <van-empty description="暂无可用格子" />
       </van-cell-group>
       <div v-else class="box-picker-list">
         <div
-          v-for="b in boxes"
+          v-for="b in availableBoxes"
           :key="b.id"
           class="box-picker-item"
           :class="{ active: Number(form.box_id) === Number(b.id) }"
@@ -141,7 +141,11 @@
             {{ b.owner?.nickname?.[0] || '?' }}
           </span>
           <div class="meta">
-            <div class="name">{{ b.name }}</div>
+            <div class="name">
+              {{ b.name }}
+              <span v-if="b.is_public" class="box-tag pub">公共</span>
+              <span v-else class="box-tag pri">私有</span>
+            </div>
             <div class="sub">第{{ b.floor }}层 · {{ b.owner?.nickname }} · {{ b.food_count }}件</div>
           </div>
         </div>
@@ -216,6 +220,15 @@ const expiryColor = computed(() => {
 const selectedBoxName = computed(() => {
   const b = boxes.value.find(x => Number(x.id) === Number(form.box_id))
   return b ? b.name : ''
+})
+
+const availableBoxes = computed(() => {
+  return boxes.value.filter(b => {
+    if (!b.is_public && b.box_status && ['grace', 'released'].includes(b.box_status)) {
+      return false
+    }
+    return true
+  })
 })
 
 const loadBoxes = async () => {
@@ -358,6 +371,24 @@ onMounted(async () => {
   .name {
     font-weight: 600;
     font-size: 15px;
+
+    .box-tag {
+      font-size: 10px;
+      padding: 0 6px;
+      border-radius: 8px;
+      margin-left: 6px;
+      vertical-align: middle;
+
+      &.pub {
+        background: #e8f7ee;
+        color: #07c160;
+      }
+
+      &.pri {
+        background: #f0e8ff;
+        color: #7232dd;
+      }
+    }
   }
 
   .sub {

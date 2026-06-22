@@ -33,6 +33,9 @@ class BoxResponse(BoxBase):
     owner_id: Optional[int] = None
     claimer_id: Optional[int] = None
     is_available: bool
+    expires_at: Optional[datetime] = None
+    status: Optional[str] = "active"
+    box_status: Optional[str] = "active"
     created_at: datetime
     updated_at: datetime
     owner: Optional[UserSimple] = None

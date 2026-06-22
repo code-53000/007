@@ -44,3 +44,10 @@ export const getBoxStats = () => {
     method: 'get',
   })
 }
+
+export const cleanupExpiredBoxes = () => {
+  return request({
+    url: '/api/boxes/cleanup/expired',
+    method: 'post',
+  })
+}

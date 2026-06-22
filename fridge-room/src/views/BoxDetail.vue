@@ -24,15 +24,41 @@
             {{ box.owner?.nickname || '未分配' }} · 第{{ box.floor }}层 · 容量 {{ box.capacity }}
             <span v-if="box.is_public" class="badge">公共</span>
             <span v-else class="badge private">私有</span>
+            <span v-if="box.box_status === 'grace'" class="badge grace">宽限期</span>
+            <span v-else-if="box.box_status === 'released'" class="badge released">已释放</span>
+            <span v-else-if="box.box_status === 'expiring'" class="badge expiring">即将到期</span>
           </p>
           <p v-if="box.description" class="desc">{{ box.description }}</p>
+          <p v-if="!box.is_public && box.expires_at" class="desc expiry-info">
+            <template v-if="box.box_status === 'grace'">
+              ⚠️ 已过期，宽限期至 {{ formatDate(box.expires_at) }}，请尽快取出食物
+            </template>
+            <template v-else-if="box.box_status === 'released'">
+              ⛔ 宽限期已过，格子即将被释放
+            </template>
+            <template v-else>
+              🕐 有效期至 {{ formatDate(box.expires_at) }}
+            </template>
+          </p>
         </div>
+      </div>
+
+      <div v-if="box.box_status === 'grace'" class="expiry-warning-bar">
+        ⚠️ 此格子已过期，处于宽限期中。你可以取出食物，但不能放入新食物。
+      </div>
+      <div v-else-if="box.box_status === 'released'" class="expiry-warning-bar danger">
+        ⛔ 此格子宽限期已过，即将被系统释放，请立即取出食物！
       </div>
 
       <div class="card">
         <div class="section-title">
           <span>格子里的食物 ({{ activeFoods.length }})</span>
-          <van-button size="small" type="primary" @click="$router.push(`/food/add?box_id=${box.id}`)">
+          <van-button
+            v-if="box.box_status !== 'grace' && box.box_status !== 'released'"
+            size="small"
+            type="primary"
+            @click="$router.push(`/food/add?box_id=${box.id}`)"
+          >
             + 放入
           </van-button>
         </div>
@@ -365,13 +391,44 @@ onMounted(loadData)
         &.private {
           background: #7232dd;
         }
+
+        &.grace {
+          background: #ff976a;
+        }
+
+        &.released {
+          background: #969799;
+        }
+
+        &.expiring {
+          background: #ff976a;
+        }
       }
 
       &.desc {
         margin-top: 6px;
         color: #969799;
+
+        &.expiry-info {
+          color: #ff976a;
+        }
       }
     }
+  }
+}
+
+.expiry-warning-bar {
+  margin: 0 16px;
+  padding: 10px 14px;
+  background: #fff3e8;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #ff976a;
+  font-weight: 500;
+
+  &.danger {
+    background: #fde8e8;
+    color: #ee0a24;
   }
 }
 

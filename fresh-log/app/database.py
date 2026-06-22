@@ -19,3 +19,19 @@ def get_db():
 def init_db():
     import app.models  # noqa: F401
     Base.metadata.create_all(bind=engine)
+    _migrate_boxes_table()
+
+
+def _migrate_boxes_table():
+    from sqlalchemy import inspect, text
+    insp = inspect(engine)
+    existing_cols = {c["name"] for c in insp.get_columns("boxes")}
+    migrations = [
+        ("expires_at", "ALTER TABLE boxes ADD COLUMN expires_at DATETIME"),
+        ("status", "ALTER TABLE boxes ADD COLUMN status VARCHAR(20) DEFAULT 'active'"),
+    ]
+    with engine.connect() as conn:
+        for col_name, sql in migrations:
+            if col_name not in existing_cols:
+                conn.execute(text(sql))
+        conn.commit()

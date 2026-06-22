@@ -46,6 +46,22 @@
         <div class="tip" v-else>
           私有格子：只有你可以放东西
         </div>
+        <div class="limit-info" v-if="!form.is_public">
+          <div class="limit-row">
+            <span>有效期：{{ boxStats.private_box_expiry_days }} 天</span>
+            <span>宽限期：{{ boxStats.private_box_grace_days }} 天</span>
+          </div>
+          <div class="limit-row">
+            <span>你的私有格子：{{ boxStats.user_private_boxes }} / {{ boxStats.max_private_boxes_per_user }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" v-if="!canCreateAny || !canCreatePrivate">
+        <div class="warning-info">
+          <span v-if="!canCreateAny">⚠️ 格子总数已满（{{ boxStats.total_boxes }}/{{ boxStats.max_boxes }}），请先清理不用的格子</span>
+          <span v-else-if="!canCreatePrivate">⚠️ 你的私有格子已达上限（{{ boxStats.user_private_boxes }}/{{ boxStats.max_private_boxes_per_user }}）</span>
+        </div>
       </div>
 
       <div class="card">
@@ -72,13 +88,23 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
-import { createBox } from '@/api/boxes'
+import { createBox, getBoxStats } from '@/api/boxes'
+import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 const loading = ref(false)
+const boxStats = ref({
+  total_boxes: 0,
+  max_boxes: 50,
+  max_private_boxes_per_user: 5,
+  user_private_boxes: 0,
+  private_box_expiry_days: 7,
+  private_box_grace_days: 3,
+})
 
 const form = reactive({
   name: '',
@@ -89,8 +115,24 @@ const form = reactive({
   description: '',
 })
 
+const canCreatePrivate = computed(() => {
+  return form.is_public || boxStats.value.user_private_boxes < boxStats.value.max_private_boxes_per_user
+})
+
+const canCreateAny = computed(() => {
+  return boxStats.value.total_boxes < boxStats.value.max_boxes
+})
+
+const loadStats = async () => {
+  try {
+    boxStats.value = await getBoxStats()
+  } catch (e) {}
+}
+
 const onSubmit = async () => {
   if (!form.name.trim()) return showToast('请填写格子名称')
+  if (!canCreateAny.value) return showToast('格子数量已满，请先清理不用的格子')
+  if (!canCreatePrivate.value) return showToast('你的格子数量已达上限')
   loading.value = true
   try {
     const res = await createBox(form)
@@ -101,6 +143,8 @@ const onSubmit = async () => {
     loading.value = false
   }
 }
+
+loadStats()
 </script>
 
 <style lang="less" scoped>
@@ -115,6 +159,35 @@ const onSubmit = async () => {
   border-radius: 8px;
   font-size: 12px;
   color: #969799;
+}
+
+.limit-info {
+  margin: 10px 20px 0;
+  padding: 10px 14px;
+  background: #e8f3ff;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #1989fa;
+
+  .limit-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+
+    & + .limit-row {
+      margin-top: 4px;
+    }
+  }
+}
+
+.warning-info {
+  margin: 12px 20px;
+  padding: 10px 14px;
+  background: #fff3e8;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #ff976a;
+  font-weight: 500;
 }
 
 .form-submit {

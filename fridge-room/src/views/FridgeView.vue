@@ -4,7 +4,7 @@
       <div class="header-top">
         <div class="header-title">
           <h1>🧊 冰箱格子</h1>
-          <div class="subtitle">{{ stats.available_boxes }} 个可用 / 共 {{ stats.total_boxes }} 个</div>
+          <div class="subtitle">{{ stats.available_boxes }} 个可用 / 共 {{ stats.total_boxes }} / {{ stats.max_boxes }}</div>
         </div>
         <div class="user-avatar" :style="{ background: userStore.avatarColor }" @click="$router.push('/profile')">
           {{ userStore.user?.nickname?.[0] || '?' }}
@@ -63,6 +63,9 @@
                 <div class="box-head" :style="{ background: box.owner?.avatar_color || '#c8c9cc' }">
                   <span v-if="box.is_public" class="tag-pub">公</span>
                   <span v-else class="box-letter">{{ box.owner?.nickname?.[0] || '?' }}</span>
+                  <span v-if="box.box_status === 'grace'" class="tag-expiry grace">宽限期</span>
+                  <span v-else-if="box.box_status === 'released'" class="tag-expiry released">已释放</span>
+                  <span v-else-if="box.box_status === 'expiring'" class="tag-expiry expiring">即将到期</span>
                 </div>
                 <div class="box-body">
                   <div class="box-name">{{ box.name }}</div>
@@ -175,6 +178,9 @@ const stats = ref({
   occupied_boxes: 0,
   available_boxes: 0,
   total_floors: 0,
+  max_boxes: 50,
+  max_private_boxes_per_user: 5,
+  user_private_boxes: 0,
 })
 const activeFloor = ref(1)
 const viewMode = ref('list')
@@ -413,6 +419,32 @@ onMounted(loadData)
       align-items: center;
       justify-content: center;
       font-size: 16px;
+    }
+
+    .tag-expiry {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      padding: 1px 6px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 600;
+
+      &.grace {
+        background: #ff976a;
+        color: #fff;
+      }
+
+      &.released {
+        background: #969799;
+        color: #fff;
+      }
+
+      &.expiring {
+        background: #ff976a;
+        color: #fff;
+        animation: pulse-warning 2s infinite;
+      }
     }
 
     .box-letter {

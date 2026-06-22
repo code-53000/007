@@ -10,6 +10,11 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60 * 24 * 7
     algorithm: str = "HS256"
 
+    max_boxes: int = 50
+    max_private_boxes_per_user: int = 5
+    private_box_expiry_days: int = 7
+    private_box_grace_days: int = 3
+
     class Config:
         env_file = ".env"
 

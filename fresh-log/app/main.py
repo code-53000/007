@@ -3,16 +3,49 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from sqlalchemy import text
+import asyncio
 
 from app.config import settings
 from app.database import init_db
 from app.routers import api_router
 
 
+async def _auto_cleanup_expired_boxes():
+    from app.database import SessionLocal
+    from app.models import Box, Food
+    from app.core import log_operation
+    from datetime import datetime
+
+    while True:
+        await asyncio.sleep(3600)
+        try:
+            db = SessionLocal()
+            now = datetime.utcnow()
+            private_boxes = db.query(Box).filter(Box.is_public == False).all()
+            released_count = 0
+            for box in private_boxes:
+                computed = box.box_status
+                if computed == "released":
+                    for food in box.foods:
+                        if not food.is_cleaned:
+                            food.is_cleaned = True
+                            food.cleaned_at = now
+                            food.cleaned_by = box.owner_id
+                    db.delete(box)
+                    released_count += 1
+            if released_count > 0:
+                db.commit()
+            db.close()
+        except Exception:
+            pass
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    task = asyncio.create_task(_auto_cleanup_expired_boxes())
     yield
+    task.cancel()
 
 
 app = FastAPI(
